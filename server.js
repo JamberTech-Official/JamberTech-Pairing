@@ -1,16 +1,18 @@
-// JamberTech Pair v3.0 — WhatsApp Session Generator
-// Based on @whiskeysockets/baileys v7
-// Supports: QR Code + Pair Code methods
+// JamberTech Pair v3.1 — WhatsApp Session Generator
+// Based on @whiskeysockets/baileys v7 (ESM)
 
-if (!globalThis.crypto) {
-  globalThis.crypto = require("crypto").webcrypto;
-}
+import express from "express";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+import { createRequire } from "module";
+import pino from "pino";
+import QRCode from "qrcode";
 
-const express = require("express");
-const path = require("path");
-const fs = require("fs");
-const pino = require("pino");
-const QRCode = require("qrcode");
+const require = createRequire(import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const {
   default: makeWASocket,
   useMultiFileAuthState,
@@ -25,8 +27,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const PORT = process.env.PORT || 3000;
 const SESSIONS_DIR = path.join(__dirname, "pair_sessions");
-if (!fs.existsSync(SESSIONS_DIR))
-  fs.mkdirSync(SESSIONS_DIR, { recursive: true });
+if (!fs.existsSync(SESSIONS_DIR)) fs.mkdirSync(SESSIONS_DIR, { recursive: true });
 
 const activeSessions = new Map();
 
@@ -62,14 +63,11 @@ async function getVersion() {
 // ── POST /pair — Pair Code Method ──
 app.post("/pair", async (req, res) => {
   let { number } = req.body;
-  if (!number)
-    return res.status(400).json({ error: "Phone number required" });
+  if (!number) return res.status(400).json({ error: "Phone number required" });
 
   number = number.replace(/[^0-9]/g, "");
   if (number.length < 10)
-    return res.status(400).json({
-      error: "Invalid number — use international format (e.g. 923001234567)",
-    });
+    return res.status(400).json({ error: "Invalid number — use international format (e.g. 923001234567)" });
 
   const token = "pair_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
   const sessionDir = path.join(SESSIONS_DIR, token);
@@ -112,11 +110,7 @@ app.post("/pair", async (req, res) => {
       const e = activeSessions.get(token);
       if (!e) return;
 
-      if (
-        !pairCodeRequested &&
-        !sock.authState.creds.registered &&
-        !!qr
-      ) {
+      if (!pairCodeRequested && !sock.authState.creds.registered && !!qr) {
         pairCodeRequested = true;
         try {
           await sleep(3000);
@@ -137,9 +131,7 @@ app.post("/pair", async (req, res) => {
           e.connected = true;
           e.sessionID = encoded;
         }
-        try {
-          sock.end();
-        } catch (_) {}
+        try { sock.end(); } catch (_) {}
       }
 
       if (connection === "close") {
@@ -151,7 +143,6 @@ app.post("/pair", async (req, res) => {
       }
     });
 
-    // Wait up to 30s for pair code (3s delay + connection time)
     const deadline = Date.now() + 30000;
     while (Date.now() < deadline) {
       await sleep(500);
@@ -159,23 +150,16 @@ app.post("/pair", async (req, res) => {
     }
 
     if (!pairCodeValue) {
-      try {
-        sock.end();
-      } catch (_) {}
+      try { sock.end(); } catch (_) {}
       activeSessions.delete(token);
       cleanDir(sessionDir);
-      return res.status(500).json({
-        error: pairCodeError || "Pair code nahi aaya. Dobara try karein.",
-      });
+      return res.status(500).json({ error: pairCodeError || "Pair code nahi aaya. Dobara try karein." });
     }
 
-    // Auto cleanup after 5 min
     setTimeout(() => {
       const e = activeSessions.get(token);
       if (e && !e.connected) {
-        try {
-          e.sock.end();
-        } catch (_) {}
+        try { e.sock.end(); } catch (_) {}
         activeSessions.delete(token);
         cleanDir(sessionDir);
       }
@@ -185,9 +169,7 @@ app.post("/pair", async (req, res) => {
   } catch (err) {
     activeSessions.delete(token);
     cleanDir(sessionDir);
-    return res
-      .status(500)
-      .json({ error: "Server error: " + err.message });
+    return res.status(500).json({ error: "Server error: " + err.message });
   }
 });
 
@@ -220,14 +202,7 @@ app.post("/qr", async (_req, res) => {
       markOnlineOnConnect: false,
     });
 
-    const entry = {
-      sock,
-      sessionDir,
-      connected: false,
-      sessionID: null,
-      qrDataUrl: null,
-      qrExpired: false,
-    };
+    const entry = { sock, sessionDir, connected: false, sessionID: null, qrDataUrl: null, qrExpired: false };
     activeSessions.set(token, entry);
     sock.ev.on("creds.update", saveCreds);
 
@@ -238,10 +213,7 @@ app.post("/qr", async (_req, res) => {
 
       if (qr) {
         try {
-          e.qrDataUrl = await QRCode.toDataURL(qr, {
-            width: 300,
-            margin: 2,
-          });
+          e.qrDataUrl = await QRCode.toDataURL(qr, { width: 300, margin: 2 });
           e.qrExpired = false;
         } catch (_) {}
       }
@@ -253,9 +225,7 @@ app.post("/qr", async (_req, res) => {
           e.connected = true;
           e.sessionID = encoded;
         }
-        try {
-          sock.end();
-        } catch (_) {}
+        try { sock.end(); } catch (_) {}
       }
 
       if (connection === "close") {
@@ -266,30 +236,22 @@ app.post("/qr", async (_req, res) => {
           activeSessions.delete(token);
           cleanDir(sessionDir);
         }
-        if (
-          code === DisconnectReason.loggedOut ||
-          code === 401 ||
-          code === DisconnectReason.restartRequired
-        ) {
+        if (code === DisconnectReason.loggedOut || code === 401 || code === DisconnectReason.restartRequired) {
           activeSessions.delete(token);
           cleanDir(sessionDir);
         }
       }
     });
 
-    // Auto cleanup after 5 min for QR sessions
     setTimeout(() => {
       const e = activeSessions.get(token);
       if (e && !e.connected) {
-        try {
-          e.sock.end();
-        } catch (_) {}
+        try { e.sock.end(); } catch (_) {}
         activeSessions.delete(token);
         cleanDir(sessionDir);
       }
     }, 5 * 60 * 1000);
 
-    // Wait up to 10s for first QR
     for (let i = 0; i < 20; i++) {
       await sleep(500);
       const e = activeSessions.get(token);
@@ -298,20 +260,14 @@ app.post("/qr", async (_req, res) => {
       }
     }
 
-    try {
-      sock.end();
-    } catch (_) {}
+    try { sock.end(); } catch (_) {}
     activeSessions.delete(token);
     cleanDir(sessionDir);
-    return res
-      .status(500)
-      .json({ error: "QR generate nahi hua. Dobara try karein." });
+    return res.status(500).json({ error: "QR generate nahi hua. Dobara try karein." });
   } catch (err) {
     activeSessions.delete(token);
     cleanDir(sessionDir);
-    return res
-      .status(500)
-      .json({ error: "Server error: " + err.message });
+    return res.status(500).json({ error: "Server error: " + err.message });
   }
 });
 
@@ -319,14 +275,12 @@ app.post("/qr", async (_req, res) => {
 app.get("/qr/:token", (req, res) => {
   const e = activeSessions.get(req.params.token);
   if (!e) return res.json({ status: "expired" });
-
   if (e.connected && e.sessionID) {
     const sid = e.sessionID;
     activeSessions.delete(req.params.token);
     cleanDir(e.sessionDir);
     return res.json({ status: "connected", sessionID: sid });
   }
-
   if (e.qrExpired) {
     activeSessions.delete(req.params.token);
     cleanDir(e.sessionDir);
@@ -339,22 +293,16 @@ app.get("/qr/:token", (req, res) => {
 app.get("/status/:token", (req, res) => {
   const e = activeSessions.get(req.params.token);
   if (!e) return res.json({ status: "expired" });
-
   if (e.connected && e.sessionID) {
     const sid = e.sessionID;
     activeSessions.delete(req.params.token);
     cleanDir(e.sessionDir);
     return res.json({ status: "connected", sessionID: sid });
   }
-
   return res.json({ status: "waiting" });
 });
 
 // ── Health ──
-app.get("/health", (_req, res) =>
-  res.json({ ok: true, v: "3.0.0" })
-);
+app.get("/health", (_req, res) => res.json({ ok: true, v: "3.1.0" }));
 
-app.listen(PORT, () =>
-  console.log(`[JamberTech Pair] Running on port ${PORT}`)
-);
+app.listen(PORT, () => console.log(`[JamberTech Pair] Running on port ${PORT}`));
