@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JamberTech Pair — WhatsApp Session Generator</title>
+  <meta name="description" content="Generate your WhatsApp Session ID securely using QR Code or Pair Code method for KHAN-MD Bot." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0b0f14;
+      --card: #111820;
+      --card-border: #1a2430;
+      --accent: #25d366;
+      --accent-hover: #1ebe57;
+      --accent-glow: rgba(37, 211, 102, 0.15);
+      --text: #e8e8e8;
+      --text-dim: #8696a0;
+      --tab-bg: #182230;
+      --danger: #ef4444;
+      --radius: 12px;
+    }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px;
+      background-image:
+        radial-gradient(ellipse at 20% 0%, rgba(37,211,102,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(37,211,102,0.04) 0%, transparent 60%);
+    }
+    .logo {
+      width: 52px; height: 52px; margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--accent), #128c7e);
+      border-radius: 14px; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 30px rgba(37,211,102,0.25);
+    }
+    .logo svg { width: 28px; height: 28px; fill: white; }
+    h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.5px; }
+    .subtitle { color: var(--text-dim); font-size: 0.95rem; margin-bottom: 32px; }
+    .container {
+      width: 100%; max-width: 520px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 28px 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .tabs {
+      display: flex; gap: 4px; padding: 4px;
+      background: var(--tab-bg);
+      border-radius: 10px; margin-bottom: 28px;
+    }
+    .tab {
+      flex: 1; padding: 10px; border: none; border-radius: 8px;
+      background: transparent; color: var(--text-dim);
+      font-weight: 600; font-size: 0.88rem; cursor: pointer;
+      transition: all 0.25s ease; display: flex; align-items: center;
+      justify-content: center; gap: 6px;
+    }
+    .tab.active {
+      background: var(--accent); color: white;
+      box-shadow: 0 4px 15px rgba(37,211,102,0.3);
+    }
+    .tab:not(.active):hover { background: rgba(255,255,255,0.05); }
+    .panel { display: none; animation: fadeIn 0.3s ease; }
+    .panel.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .icon-box {
+      width: 72px; height: 72px; margin: 0 auto 16px;
+      background: rgba(37,211,102,0.08); border: 1px solid rgba(37,211,102,0.15);
+      border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    }
+    .icon-box svg { width: 36px; height: 36px; fill: var(--accent); }
+    .panel-title { font-size: 1.15rem; font-weight: 700; text-align: center; margin-bottom: 6px; }
+    .panel-desc { color: var(--text-dim); font-size: 0.88rem; text-align: center; margin-bottom: 20px; line-height: 1.5; }
+
+    .phone-group { position: relative; margin-bottom: 20px; }
+    .phone-group input {
+      width: 100%; padding: 14px 16px; border-radius: 10px;
+      border: 1px solid var(--card-border); background: var(--tab-bg);
+      color: var(--text); font-size: 1rem; outline: none;
+      transition: border-color 0.2s;
+    }
+    .phone-group input:focus { border-color: var(--accent); }
+    .phone-group input::placeholder { color: var(--text-dim); }
+    .phone-hint { font-size: 0.78rem; color: var(--text-dim); margin-top: 8px; }
+
+    .btn {
+      width: 100%; padding: 14px; border: none; border-radius: 10px;
+      background: var(--accent); color: white;
+      font-size: 1rem; font-weight: 700; cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,211,102,0.3); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .result {
+      margin-top: 20px; padding: 16px; border-radius: 10px;
+      background: var(--tab-bg); border: 1px solid var(--card-border);
+      text-align: center; word-break: break-all;
+    }
+    .pair-code-display {
+      font-size: 2rem; font-weight: 800; letter-spacing: 4px;
+      color: var(--accent); margin: 8px 0; font-family: 'Courier New', monospace;
+    }
+    .session-id-display {
+      font-size: 0.75rem; font-family: monospace;
+      color: var(--accent); background: rgba(37,211,102,0.08);
+      padding: 12px; border-radius: 8px; margin: 8px 0;
+      max-height: 100px; overflow-y: auto; word-break: break-all;
+    }
+    .copy-btn {
+      margin-top: 10px; padding: 10px 24px; border: 1px solid var(--accent);
+      border-radius: 8px; background: transparent; color: var(--accent);
+      font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .copy-btn:hover { background: var(--accent); color: white; }
+    .status-text { color: var(--text-dim); font-size: 0.88rem; margin-top: 8px; }
+    .status-text.success { color: var(--accent); }
+    .status-text.error { color: var(--danger); }
+
+    .qr-container { display: flex; flex-direction: column; align-items: center; }
+    .qr-container img {
+      width: 260px; height: 260px; border-radius: 12px;
+      background: white; padding: 12px; margin: 10px 0;
+    }
+
+    .spinner {
+      display: inline-block; width: 20px; height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white; border-radius: 50%;
+      animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .footer {
+      margin-top: 40px; text-align: center;
+      color: var(--text-dim); font-size: 0.8rem; line-height: 1.6;
+    }
+    .footer a { color: var(--accent); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    .steps {
+      margin-top: 12px; padding: 14px; border-radius: 10px;
+      background: rgba(37,211,102,0.05); border: 1px solid rgba(37,211,102,0.1);
+      text-align: left;
+    }
+    .steps p { font-size: 0.82rem; color: var(--text-dim); margin: 4px 0; }
+    .steps strong { color: var(--text); }
+
+    @media (max-width: 480px) {
+      body { padding: 24px 12px; }
+      h1 { font-size: 1.6rem; }
+      .container { padding: 20px 16px; }
+      .pair-code-display { font-size: 1.6rem; letter-spacing: 2px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="logo">
+  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+</div>
+<h1>JamberTech Pair</h1>
+<p class="subtitle">Official WhatsApp Session Generator</p>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('qr')" id="tab-qr">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13-2h-2v2h2v-2zm0 4h-2v2h-2v-2h-2v2h2v2h2v-2h2v2h2v-2h-2v-2zm0 0h2v-2h-2v2z"/></svg>
+      QR Code
+    </button>
+    <button class="tab" onclick="switchTab('phone')" id="tab-phone">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+      Phone Number
+    </button>
+  </div>
+
+  <!-- QR Code Panel -->
+  <div class="panel active" id="panel-qr">
+    <div class="icon-box">
+      <svg viewBox="0 0 24 24"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13-2h-2v2h2v-2zm0 4h-2v2h-2v-2h-2v2h2v2h2v-2h2v2h2v-2h-2v-2zm0 0h2v-2h-2v2z"/></svg>
+    </div>
+    <h3 class="panel-title">Scan QR Code</h3>
+    <p class="panel-desc">Generate a unique QR code to link your WhatsApp account instantly.</p>
+    <button class="btn" id="btn-qr" onclick="generateQR()">Generate QR Code</button>
+    <div id="qr-result"></div>
+  </div>
+
+  <!-- Phone Number Panel -->
+  <div class="panel" id="panel-phone">
+    <div class="icon-box">
+      <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+    </div>
+    <h3 class="panel-title">Get Pair Code</h3>
+    <p class="panel-desc">Enter your WhatsApp number to get a pairing code. Go to WhatsApp &gt; Linked Devices &gt; Link with phone number.</p>
+    <div class="phone-group">
+      <input type="tel" id="phone-input" placeholder="923001234567" autocomplete="tel" />
+      <p class="phone-hint">Enter number with country code, no + or spaces (e.g. 923001234567)</p>
+    </div>
+    <button class="btn" id="btn-pair" onclick="generatePairCode()">Get Pair Code</button>
+    <div id="pair-result"></div>
+  </div>
+</div>
+
+<div class="footer">
+  <p>Powered by <a href="https://github.com/JamberTech-Official/JamberTech-Pair" target="_blank">JamberTech Pair</a></p>
+  <p>For <a href="https://github.com/JawadYT36/KHAN-MD" target="_blank">KHAN-MD Bot</a></p>
+</div>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const el = document.getElementById('copy-feedback');
+    if (el) { el.textContent = 'Copied!'; setTimeout(() => el.textContent = '', 2000); }
+  });
+}
+
+// ── QR Code ──
+async function generateQR() {
+  const btn = document.getElementById('btn-qr');
+  const result = document.getElementById('qr-result');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Generating...';
+  result.innerHTML = '';
+
+  try {
+    const res = await fetch('/qr', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+
+    result.innerHTML =
+      '<div class="result qr-container">' +
+        '<img src="' + data.qr + '" alt="QR Code" />' +
+        '<p class="status-text">Open WhatsApp &gt; Linked Devices &gt; Scan this QR</p>' +
+      '</div>';
+
+    btn.textContent = 'Waiting for scan...';
+    pollQR(data.sessionId);
+  } catch (err) {
+    result.innerHTML = '<div class="result"><p class="status-text error">' + err.message + '</p></div>';
+    btn.disabled = false;
+    btn.textContent = 'Generate QR Code';
+  }
+}
+
+function pollQR(token) {
+  const interval = setInterval(async () => {
+    try {
+      const res = await fetch('/qr/' + token);
+      const data = await res.json();
+
+      if (data.status === 'connected') {
+        clearInterval(interval);
+        showSessionID(data.sessionID, 'qr-result', 'btn-qr', 'Generate QR Code');
+      } else if (data.status === 'expired') {
+        clearInterval(interval);
+        document.getElementById('qr-result').innerHTML =
+          '<div class="result"><p class="status-text error">QR expired. Try again.</p></div>';
+        const btn = document.getElementById('btn-qr');
+        btn.disabled = false;
+        btn.textContent = 'Generate QR Code';
+      } else if (data.qr) {
+        const img = document.querySelector('#qr-result img');
+        if (img) img.src = data.qr;
+      }
+    } catch (_) {}
+  }, 3000);
+}
+
+// ── Pair Code ──
+async function generatePairCode() {
+  const btn = document.getElementById('btn-pair');
+  const result = document.getElementById('pair-result');
+  const phone = document.getElementById('phone-input').value.replace(/[^0-9]/g, '');
+
+  if (!phone || phone.length < 10) {
+    result.innerHTML = '<div class="result"><p class="status-text error">Please enter a valid phone number with country code.</p></div>';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Generating...';
+  result.innerHTML = '';
+
+  try {
+    const res = await fetch('/pair', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number: phone })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+
+    result.innerHTML =
+      '<div class="result">' +
+        '<p class="status-text">Your Pairing Code:</p>' +
+        '<div class="pair-code-display">' + data.pairCode + '</div>' +
+        '<div class="steps">' +
+          '<p><strong>Step 1:</strong> Open WhatsApp on your phone</p>' +
+          '<p><strong>Step 2:</strong> Go to Linked Devices</p>' +
+          '<p><strong>Step 3:</strong> Tap "Link with phone number"</p>' +
+          '<p><strong>Step 4:</strong> Enter the code above</p>' +
+        '</div>' +
+      '</div>';
+
+    btn.textContent = 'Waiting for link...';
+    pollStatus(data.sessionId);
+  } catch (err) {
+    result.innerHTML = '<div class="result"><p class="status-text error">' + err.message + '</p></div>';
+    btn.disabled = false;
+    btn.textContent = 'Get Pair Code';
+  }
+}
+
+function pollStatus(token) {
+  const interval = setInterval(async () => {
+    try {
+      const res = await fetch('/status/' + token);
+      const data = await res.json();
+
+      if (data.status === 'connected') {
+        clearInterval(interval);
+        showSessionID(data.sessionID, 'pair-result', 'btn-pair', 'Get Pair Code');
+      } else if (data.status === 'expired') {
+        clearInterval(interval);
+        document.getElementById('pair-result').innerHTML =
+          '<div class="result"><p class="status-text error">Session expired. Try again.</p></div>';
+        const btn = document.getElementById('btn-pair');
+        btn.disabled = false;
+        btn.textContent = 'Get Pair Code';
+      }
+    } catch (_) {}
+  }, 3000);
+}
+
+// ── Show Session ID ──
+function showSessionID(sid, resultId, btnId, btnLabel) {
+  document.getElementById(resultId).innerHTML =
+    '<div class="result">' +
+      '<p class="status-text success">&#10003; Session ID Generated Successfully!</p>' +
+      '<div class="session-id-display">' + sid + '</div>' +
+      '<button class="copy-btn" onclick="copyText(\'' + sid + '\')">Copy Session ID</button>' +
+      '<span id="copy-feedback" style="margin-left:8px;color:var(--accent);font-size:0.85rem;"></span>' +
+      '<div class="steps" style="margin-top:14px">' +
+        '<p><strong>Step 1:</strong> Copy the Session ID above</p>' +
+        '<p><strong>Step 2:</strong> Go to your KHAN-MD fork on GitHub</p>' +
+        '<p><strong>Step 3:</strong> Open <code>settings.js</code> and paste it in <code>SESSION_ID</code></p>' +
+        '<p><strong>Step 4:</strong> Deploy your bot!</p>' +
+      '</div>' +
+    '</div>';
+  const btn = document.getElementById(btnId);
+  btn.disabled = false;
+  btn.textContent = btnLabel;
+}
+</script>
+</body>
+</html>
