@@ -1,6 +1,6 @@
 {
   "name": "jambertech-pairing",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "type": "module",
   "description": "JamberTech Pairing — WhatsApp Session Generator for KHAN-MD",
   "main": "server.js",

@@ -1,4 +1,4 @@
-// JamberTech Pair v3.1 — WhatsApp Session Generator
+// JamberTech Pair v3.2 — WhatsApp Session Generator
 // Based on @whiskeysockets/baileys v7 (ESM)
 
 import express from "express";
@@ -19,6 +19,7 @@ const {
   fetchLatestBaileysVersion,
   DisconnectReason,
   makeCacheableSignalKeyStore,
+  Browsers,
 } = require("@whiskeysockets/baileys");
 
 const app = express();
@@ -87,7 +88,7 @@ app.post("/pair", async (req, res) => {
         creds: state.creds,
         keys: makeCacheableSignalKeyStore(state.keys, logger),
       },
-      browser: ["Mac OS", "Chrome", "14.4.1"],
+      browser: Browsers.ubuntu("Chrome"),
       printQRInTerminal: false,
       defaultQueryTimeoutMs: undefined,
       keepAliveIntervalMs: 10000,
@@ -193,7 +194,7 @@ app.post("/qr", async (_req, res) => {
         creds: state.creds,
         keys: makeCacheableSignalKeyStore(state.keys, logger),
       },
-      browser: ["Mac OS", "Chrome", "14.4.1"],
+      browser: Browsers.ubuntu("Chrome"),
       printQRInTerminal: false,
       defaultQueryTimeoutMs: undefined,
       keepAliveIntervalMs: 10000,
@@ -303,6 +304,6 @@ app.get("/status/:token", (req, res) => {
 });
 
 // ── Health ──
-app.get("/health", (_req, res) => res.json({ ok: true, v: "3.1.0" }));
+app.get("/health", (_req, res) => res.json({ ok: true, v: "3.2.0" }));
 
-app.listen(PORT, () => console.log(`[JamberTech Pair] Running on port ${PORT}`));
+app.listen(PORT, () => console.log("[JamberTech Pair] Running on port " + PORT));
